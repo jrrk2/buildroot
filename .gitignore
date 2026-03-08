@@ -13,4 +13,5 @@
 *.rej
 *~
 *.pyc
+*.bak
 /br.log
