@@ -57,7 +57,7 @@ define HOST_TAR_EXTRACT_CMDS
 	rmdir $(@D)/tar-$(HOST_TAR_VERSION)
 endef
 
-HOST_TAR_CONF_OPTS = --without-selinux
+HOST_TAR_CONF_OPTS = --without-selinux am_cv_func_iconv=no
 
 # we are built before ccache
 HOST_TAR_CONF_ENV = \

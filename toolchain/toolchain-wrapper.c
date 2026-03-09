@@ -25,6 +25,11 @@
 #include <time.h>
 #include <stdbool.h>
 
+#ifdef __APPLE__
+static const char *_get_progname(void) { return getprogname(); }
+#define program_invocation_short_name _get_progname()
+#endif
+
 #ifdef BR_CCACHE
 static char ccache_path[PATH_MAX];
 #endif
