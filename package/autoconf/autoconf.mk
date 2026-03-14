@@ -25,5 +25,5 @@ AUTOCONF = $(HOST_DIR)/bin/autoconf -I "$(ACLOCAL_DIR)" -I "$(ACLOCAL_HOST_DIR)"
 AUTOHEADER = $(HOST_DIR)/bin/autoheader -I "$(ACLOCAL_DIR)" -I "$(ACLOCAL_HOST_DIR)"
 AUTORECONF = $(HOST_CONFIGURE_OPTS) ACLOCAL="$(ACLOCAL)" \
 	AUTOCONF="$(AUTOCONF)" AUTOHEADER="$(AUTOHEADER)" \
-	AUTOMAKE="$(AUTOMAKE)" GTKDOCIZE=/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/bin/true \
+	AUTOMAKE="$(AUTOMAKE)" GTKDOCIZE=/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/usr/bin/true \
 	$(HOST_DIR)/bin/autoreconf -f -i
