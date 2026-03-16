@@ -49,6 +49,8 @@ BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_9=y
 
 # Rootfs customisation
 BR2_ROOTFS_OVERLAY="$(TOPDIR)/board/litex_vexriscv/rootfs_overlay"
+# Post-build script reinstalls tcc dev files stripped by target-finalize
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(TOPDIR)/board/litex_vexriscv/post-build.sh"
 
 # NFS mount support (busybox mount -t nfs needs libtirpc for RPC headers)
 BR2_PACKAGE_LIBTIRPC=y
