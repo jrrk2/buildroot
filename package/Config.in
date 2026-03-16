@@ -2914,4 +2914,10 @@ menu "Text editors and viewers"
 	source "package/vim/Config.in"
 endmenu
 
+menu "Sonata RISC-V packages"
+	source "package/tcc/Config.in"
+	source "package/gcc142/Config.in"
+	source "package/ocaml3/Config.in"
+endmenu
+
 endmenu

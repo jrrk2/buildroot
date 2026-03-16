@@ -133,12 +133,16 @@ define BINUTILS_INSTALL_STAGING_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)/libsframe DESTDIR=$(STAGING_DIR) install
 endef
 
-# If we don't want full binutils on target
 ifneq ($(BR2_PACKAGE_BINUTILS_TARGET),y)
-# libiberty is static-only, so it is only installed to staging, above.
+# Minimal install: as, ld, and shared libs needed for on-target compilation.
+# Full install (BR2_PACKAGE_BINUTILS_TARGET=y) includes 16MB of extra tools.
 define BINUTILS_INSTALL_TARGET_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)/bfd DESTDIR=$(TARGET_DIR) install
-	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)/opcodes DESTDIR=$(TARGET_DIR) install
+	$(INSTALL) -D -m 0755 $(@D)/gas/as-new $(TARGET_DIR)/usr/bin/as
+	$(INSTALL) -D -m 0755 $(@D)/ld/ld-new $(TARGET_DIR)/usr/bin/ld
+	cp -d $(@D)/bfd/.libs/libbfd-*.so $(TARGET_DIR)/usr/lib/
+	cp -d $(@D)/opcodes/.libs/libopcodes-*.so $(TARGET_DIR)/usr/lib/
+	cp -d $(@D)/libsframe/.libs/libsframe.so* $(TARGET_DIR)/usr/lib/
+	cp -d $(@D)/libctf/.libs/libctf.so* $(TARGET_DIR)/usr/lib/
 endef
 endif
 

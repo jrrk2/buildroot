@@ -25,6 +25,13 @@ LIBZLIB_PIC = -fPIC
 LIBZLIB_SHARED = --shared
 endif
 
+# macOS fix: zlib configure sets Apple libtool as AR and uses -dynamiclib.
+# Disable the Darwin case so the default (*) case uses -shared and leaves AR alone.
+define LIBZLIB_FIX_DARWIN_CONFIGURE
+	$(SED) 's/Darwin\* | darwin\* | \*-darwin\*)/DISABLED_macOS)/' $(@D)/configure
+endef
+LIBZLIB_POST_EXTRACT_HOOKS += LIBZLIB_FIX_DARWIN_CONFIGURE
+
 define LIBZLIB_CONFIGURE_CMDS
 	(cd $(@D); rm -rf config.cache; \
 		$(TARGET_CONFIGURE_ARGS) \
