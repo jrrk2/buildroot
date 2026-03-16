@@ -13,9 +13,9 @@ GCC8_NATIVE_SITE = $(BR2_GNU_MIRROR:/=)/gcc/gcc-$(GCC8_NATIVE_VERSION)
 GCC8_NATIVE_SOURCE = gcc-$(GCC8_NATIVE_VERSION).tar.xz
 GCC8_NATIVE_LICENSE = GPL-3.0+, LGPL-3.0+, GPL-3.0+ with GCC Runtime Library Exception
 GCC8_NATIVE_LICENSE_FILES = COPYING COPYING3 COPYING.LIB COPYING3.LIB
-GCC8_NATIVE_DEPENDENCIES = binutils
+GCC8_NATIVE_DEPENDENCIES = binutils gmp mpfr mpc
 
-# GCC needs GMP, MPFR, MPC — use bundled copies to avoid dependency headaches
+# GCC needs GMP, MPFR, MPC compiled for the target — provided by staging sysroot
 GCC8_NATIVE_CONF_OPTS = \
 	--host=$(GNU_TARGET_NAME) \
 	--target=$(GNU_TARGET_NAME) \
@@ -40,18 +40,13 @@ GCC8_NATIVE_CONF_OPTS = \
 	--disable-fixed-point \
 	--disable-threads \
 	--disable-bootstrap \
-	--with-newlib \
-	--without-headers \
 	--with-gnu-as \
 	--with-gnu-ld \
 	--with-sysroot=$(STAGING_DIR) \
 	--with-build-sysroot=$(STAGING_DIR) \
-	--with-gmp-include=$(HOST_DIR)/include \
-	--with-gmp-lib=$(HOST_DIR)/lib \
-	--with-mpfr-include=$(HOST_DIR)/include \
-	--with-mpfr-lib=$(HOST_DIR)/lib \
-	--with-mpc-include=$(HOST_DIR)/include \
-	--with-mpc-lib=$(HOST_DIR)/lib \
+	--with-gmp=$(STAGING_DIR)/usr \
+	--with-mpfr=$(STAGING_DIR)/usr \
+	--with-mpc=$(STAGING_DIR)/usr \
 	--with-system-zlib
 
 GCC8_NATIVE_CONF_ENV = \
