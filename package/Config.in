@@ -2917,6 +2917,7 @@ endmenu
 menu "Sonata RISC-V packages"
 	source "package/tcc/Config.in"
 	source "package/gcc142/Config.in"
+	source "package/gcc8-native/Config.in"
 	source "package/ocaml3/Config.in"
 endmenu
 

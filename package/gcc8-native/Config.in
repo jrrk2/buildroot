@@ -1,0 +1,8 @@
+config BR2_PACKAGE_GCC8_NATIVE
+	bool "gcc8-native"
+	depends on BR2_TOOLCHAIN_USES_MUSL
+	help
+	  GCC 8.4.0 cross-compiled to run natively on the target.
+	  Provides a C compiler (cc1, cpp, gcc driver) for on-device
+	  compilation. C only, no multilib, minimal runtime libraries.
+	  Approximately 10-15MB installed.
