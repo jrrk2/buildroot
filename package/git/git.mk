@@ -72,12 +72,16 @@ endif
 
 GIT_CONF_OPTS += CFLAGS="$(GIT_CFLAGS)"
 
+# Force Linux detection in config.mak.uname when cross-compiling from macOS
+GIT_MAKE_OPTS += uname_S=Linux
 GIT_INSTALL_TARGET_OPTS = $(GIT_MAKE_OPTS) DESTDIR=$(TARGET_DIR) install
 
 # assume yes for these tests, configure will bail out otherwise
 # saying error: cannot run test program while cross compiling
 GIT_CONF_ENV += \
 	ac_cv_fread_reads_directories=yes \
-	ac_cv_snprintf_returns_bogus=yes LIBS='$(GIT_CONF_ENV_LIBS)'
+	ac_cv_snprintf_returns_bogus=yes \
+	ac_cv_member_struct_stat_st_mtimespec_tv_nsec=no \
+	LIBS='$(GIT_CONF_ENV_LIBS)'
 
 $(eval $(autotools-package))

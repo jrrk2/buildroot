@@ -21,6 +21,7 @@ BR2_TOOLCHAIN_BUILDROOT_MUSL=y
 
 # GCC
 BR2_GCC_VERSION_13_X=y
+BR2_OPTIMIZE_S=y
 
 # System - minimal
 BR2_TARGET_GENERIC_GETTY=y
@@ -49,7 +50,7 @@ BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_9=y
 
 # Rootfs customisation
 BR2_ROOTFS_OVERLAY="$(TOPDIR)/board/litex_vexriscv/rootfs_overlay"
-# Post-build script reinstalls tcc dev files stripped by target-finalize
+# Post-build script reinstalls dev headers stripped by target-finalize
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(TOPDIR)/board/litex_vexriscv/post-build.sh"
 
 # NFS mount support (busybox mount -t nfs needs libtirpc for RPC headers)
@@ -58,24 +59,35 @@ BR2_PACKAGE_LIBTIRPC=y
 # Disable extra packages
 # BR2_PACKAGE_PPP is not set
 
+# C++ toolchain support (required by gcc8-native: GCC 8 source is C++)
+BR2_TOOLCHAIN_BUILDROOT_CXX=y
+
 # Sonata additions
-BR2_PACKAGE_NCURSES=y
-BR2_PACKAGE_COREUTILS=y
-BR2_PACKAGE_PROCPS_NG=y
-BR2_PACKAGE_TCC=y
+# BR2_PACKAGE_NCURSES is not set
+# BR2_PACKAGE_COREUTILS is not set
+# BR2_PACKAGE_PROCPS_NG is not set
+# BR2_PACKAGE_TCC is not set
 # BR2_PACKAGE_GCC142 is not set
 BR2_PACKAGE_GMP=y
 BR2_PACKAGE_MPFR=y
 BR2_PACKAGE_MPC=y
 BR2_PACKAGE_GCC8_NATIVE=y
 BR2_PACKAGE_BINUTILS=y
+BR2_PACKAGE_MAKE=y
+BR2_PACKAGE_FLEX=y
+BR2_PACKAGE_BISON=y
 
 # Benchmarks
 BR2_PACKAGE_DHRYSTONE=y
 BR2_PACKAGE_WHETSTONE=y
 BR2_PACKAGE_COREMARK=y
-BR2_PACKAGE_STRESS=y
-BR2_PACKAGE_IPERF3=y
+# BR2_PACKAGE_STRESS is not set
+# BR2_PACKAGE_IPERF3 is not set
+
+# SSH (dropbear — tiny SSH server/client with SCP)
+BR2_PACKAGE_DROPBEAR=y
+BR2_PACKAGE_DROPBEAR_CLIENT=y
+BR2_PACKAGE_DROPBEAR_SMALL=y
 
 # Utilities
 BR2_PACKAGE_LUA=y

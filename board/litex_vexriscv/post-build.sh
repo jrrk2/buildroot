@@ -2,28 +2,19 @@
 #
 # post-build.sh — runs after target-finalize, before rootfs image creation.
 #
-# Buildroot's target-finalize removes /usr/include and *.a from the target.
-# Reinstall a curated set so tcc can compile C programs on-device, while
-# keeping the total rootfs size under 32MB (flashxip.bin budget).
+# Buildroot's target-finalize removes /usr/include from the target.
+# Reinstall a curated set so gcc8-native can compile C programs on-device,
+# while keeping the total rootfs size under 32MB (flashxip.bin budget).
 #
 set -e
 
 TARGET_DIR="$1"
 BUILD_DIR="${BASE_DIR}/build"
 SYSROOT="${HOST_DIR}/riscv32-buildroot-linux-musl/sysroot"
-HOST_GCC_LIB="${HOST_DIR}/lib/gcc/riscv32-buildroot-linux-musl"
 
-TCC_BUILD=$(echo "${BUILD_DIR}"/tcc-*)
-[ -d "${TCC_BUILD}" ] || { echo "post-build: tcc build dir not found, skipping dev install"; exit 0; }
+echo "post-build: reinstalling dev headers for on-device gcc"
 
-echo "post-build: reinstalling tcc dev files (headers, libs, CRT)"
-
-# --- libtcc1.a and tcc internal headers ---
-install -D -m 0644 "${TCC_BUILD}/libtcc1.a" "${TARGET_DIR}/usr/lib/tcc/libtcc1.a"
-mkdir -p "${TARGET_DIR}/usr/lib/tcc/include"
-cp "${TCC_BUILD}"/include/*.h "${TARGET_DIR}/usr/lib/tcc/include/"
-
-# --- musl top-level C headers (skip BFD, zlib, curses — not needed by tcc) ---
+# --- musl top-level C headers (skip BFD, zlib, curses — not needed) ---
 mkdir -p "${TARGET_DIR}/usr/include"
 for h in "${SYSROOT}"/usr/include/*.h; do
     name=$(basename "$h")
@@ -32,7 +23,7 @@ for h in "${SYSROOT}"/usr/include/*.h; do
         bfd.h|bfdlink.h|dis-asm.h|sframe.h|ansidecl.h|symcat.h) continue ;;
         # Library-specific dev headers — large and rarely needed on target
         zlib.h|zconf.h|curses.h|ncurses.h|term.h|termcap.h) continue ;;
-        # Lua dev header — large, lua runtime is already installed as .so
+        # Lua dev header — lua runtime is already installed as .so
         luaconf.h|lua.h|lualib.h|lauxlib.h) continue ;;
         *) cp "$h" "${TARGET_DIR}/usr/include/" ;;
     esac
@@ -81,44 +72,99 @@ if [ -d "${SYSROOT}/usr/include/linux/byteorder" ]; then
        "${TARGET_DIR}/usr/include/linux/"
 fi
 
-# --- CRT startup files ---
+# --- CRT startup files (needed for gcc linking) ---
 for f in crt1.o crti.o crtn.o; do
     test -f "${SYSROOT}/lib/${f}" && \
         install -D -m 0644 "${SYSROOT}/lib/${f}" "${TARGET_DIR}/usr/lib/${f}"
 done
 
-# --- Static libs for tcc static linking ---
-for f in libc.a libm.a libdl.a libpthread.a librt.a libcrypt.a libresolv.a libxnet.a libutil.a; do
-    test -f "${SYSROOT}/lib/${f}" && \
-        install -D -m 0644 "${SYSROOT}/lib/${f}" "${TARGET_DIR}/usr/lib/${f}"
+# --- crtbegin.o / crtend.o (from cross-toolchain libgcc, needed by ld) ---
+HOST_GCC_LIB="${HOST_DIR}/lib/gcc/riscv32-buildroot-linux-musl"
+GCC8_LIBDIR="${TARGET_DIR}/usr/lib/gcc/riscv32-buildroot-linux-musl/8.4.0"
+for f in crtbegin.o crtend.o; do
+    src=$(find "${HOST_GCC_LIB}" -name "${f}" 2>/dev/null | head -1)
+    test -f "$src" && install -D -m 0644 "$src" "${GCC8_LIBDIR}/${f}"
 done
 
-# --- libgcc.a ---
-LIBGCC=$(ls "${HOST_GCC_LIB}"/*/libgcc.a 2>/dev/null | head -1)
-[ -f "${LIBGCC}" ] && install -D -m 0644 "${LIBGCC}" "${TARGET_DIR}/usr/lib/libgcc.a"
+# --- Generate a minimal specs file for gcc8 to use sysroot=/ on target ---
+# gcc8 was configured with --with-sysroot pointing to the build host staging dir.
+# Override sysroot and add /usr/lib to link paths (multilib dirs don't exist on target).
+cat > "${GCC8_LIBDIR}/specs" <<'SPECS'
+*self_spec:
+--sysroot=/
 
-# --- Convenience symlinks for riscv32-linux-gnu paths ---
-mkdir -p "${TARGET_DIR}/usr/lib/riscv32-linux-gnu"
-for f in crt1.o crti.o crtn.o libc.a libm.a libdl.a libpthread.a librt.a libcrypt.a libresolv.a libgcc.a; do
-    test -f "${TARGET_DIR}/usr/lib/${f}" && \
-        ln -sf "../${f}" "${TARGET_DIR}/usr/lib/riscv32-linux-gnu/${f}" 2>/dev/null || true
-done
+*link_libgcc:
+-L/usr/lib/gcc/riscv32-buildroot-linux-musl/8.4.0 -L/usr/lib -L/lib -lgcc
+
+*startfile:
+/usr/lib/crt1.o /usr/lib/crti.o %{shared|pie:crtbeginS.o%s;:crtbegin.o%s}
+
+*endfile:
+%{shared|pie:crtendS.o%s;:crtend.o%s} /usr/lib/crtn.o
+
+SPECS
+
+# --- Remove static libraries (saves ~6MB; gcc uses dynamic linking) ---
+find "${TARGET_DIR}" -name '*.a' -delete
+
+# --- libgcc_s.so linker script references -lgcc (libgcc.a), rewrite for dynamic-only ---
+# Replace the linker script so -lgcc resolves to libgcc_s.so.1 without needing libgcc.a
+echo '/* GNU ld script */ GROUP ( libgcc_s.so.1 )' > "${TARGET_DIR}/lib/libgcc_s.so"
+# gcc8 searches its own lib dir for -lgcc; provide a symlink there too
+ln -sf /lib/libgcc_s.so "${GCC8_LIBDIR}/libgcc.so"
+
+# --- Remove gcc tools not needed for compilation ---
+# gcov/gcov-tool/gcov-dump are coverage analysis only (~1.6MB)
+rm -f "${TARGET_DIR}"/usr/bin/gcov*
+
+# Keep all binutils shared libs — as/ld need libopcodes, libsframe, libctf at runtime
 
 # --- Remove duplicate old binutils shared libs ---
-# Keep only the newest version of libbfd/libopcodes/libsframe/libctf.
-# Two binutils versions can end up installed if the build dir has old artifacts.
-for lib in libbfd libopcodes; do
+for lib in libbfd; do
     newest=$(ls "${TARGET_DIR}/usr/lib/${lib}"-*.so 2>/dev/null | sort -V | tail -1)
     for f in "${TARGET_DIR}/usr/lib/${lib}"-*.so; do
         [ "$f" = "$newest" ] || rm -f "$f"
     done
 done
-# Keep only one libsframe and libctf (drop versioned duplicates, keep symlinks)
-for lib in libsframe libctf; do
-    newest=$(ls "${TARGET_DIR}/usr/lib/${lib}".so.*.*.* 2>/dev/null | sort -V | tail -1)
-    for f in "${TARGET_DIR}/usr/lib/${lib}".so.*.*.*; do
-        [ "$f" = "$newest" ] || rm -f "$f"
+
+# --- Remove luac (lua bytecode compiler, not needed at runtime) ---
+rm -f "${TARGET_DIR}/usr/bin/luac"
+
+# --- Remove unneeded gcc8 internal tools ---
+GCC8_LIBDIR="${TARGET_DIR}/usr/lib/gcc/riscv32-buildroot-linux-musl/8.4.0"
+rm -f "${GCC8_LIBDIR}/lto-wrapper"
+rm -rf "${GCC8_LIBDIR}/install-tools"
+
+# --- Remove gcc LTO wrappers (LTO is disabled) ---
+rm -f "${TARGET_DIR}"/usr/bin/gcc-ar "${TARGET_DIR}"/usr/bin/gcc-nm "${TARGET_DIR}"/usr/bin/gcc-ranlib
+rm -f "${TARGET_DIR}"/usr/bin/*-gcc-ar "${TARGET_DIR}"/usr/bin/*-gcc-nm "${TARGET_DIR}"/usr/bin/*-gcc-ranlib
+
+# --- Remove libstdc++ (nothing on target links against it; gcc8 compiles C only) ---
+rm -f "${TARGET_DIR}"/usr/lib/libstdc++* "${TARGET_DIR}"/usr/lib/libstdc++*.py
+
+# --- Slim down git for romfs (hardlinks → symlinks, remove unneeded helpers) ---
+if [ -d "${TARGET_DIR}/usr/libexec/git-core" ]; then
+    # Convert hardlinks to symlinks (romfs doesn't support hardlinks)
+    GIT_INODE=$(stat -f '%i' "${TARGET_DIR}/usr/bin/git" 2>/dev/null || stat -c '%i' "${TARGET_DIR}/usr/bin/git")
+    for f in "${TARGET_DIR}"/usr/libexec/git-core/*; do
+        [ -f "$f" ] || continue
+        F_INODE=$(stat -f '%i' "$f" 2>/dev/null || stat -c '%i' "$f")
+        if [ "$F_INODE" = "$GIT_INODE" ]; then
+            ln -sf ../../bin/git "$f"
+        fi
     done
-done
+    # Remove standalone binaries not needed for basic git usage
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/scalar
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-imap-send
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-daemon
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-http-backend
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-http-fetch
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-http-push
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-shell
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-sh-i18n--envsubst
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-cvsserver
+    rm -f "${TARGET_DIR}"/usr/libexec/git-core/git-p4
+    echo "post-build: slimmed git-core (hardlinks→symlinks, removed helpers)"
+fi
 
 echo "post-build: done"

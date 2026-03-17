@@ -1,0 +1,7 @@
+config BR2_PACKAGE_BISON
+	bool "bison"
+	select BR2_PACKAGE_M4
+	help
+	  GNU bison parser generator.
+
+	  http://www.gnu.org/software/bison/

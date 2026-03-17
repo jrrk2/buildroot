@@ -1,0 +1,6 @@
+config BR2_PACKAGE_M4
+	bool "m4"
+	help
+	  GNU m4 macro processor.
+
+	  http://www.gnu.org/software/m4/

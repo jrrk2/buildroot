@@ -20,8 +20,11 @@ define GCC8_NATIVE_CONFIGURE_CMDS
 	(cd $(@D)/build && \
 		CC="$(TARGET_CC)" \
 		CXX="$(TARGET_CXX)" \
+		CPP="$(TARGET_CC) -E" \
+		CXXCPP="$(TARGET_CXX) -E" \
 		CC_FOR_BUILD="$(HOSTCC)" \
 		CXX_FOR_BUILD="$(HOSTCXX)" \
+		CPP_FOR_BUILD="$(HOSTCC) -E" \
 		AR="$(TARGET_AR)" \
 		RANLIB="$(TARGET_RANLIB)" \
 		NM="$(TARGET_NM)" \
@@ -61,9 +64,17 @@ define GCC8_NATIVE_CONFIGURE_CMDS
 			--with-mpfr=$(STAGING_DIR)/usr \
 			--with-mpc=$(STAGING_DIR)/usr \
 			--with-system-zlib)
+	$(SED) '/^HOST_EXPORTS = /a\\tCXXCPP="$$(CXX) -E"; export CXXCPP; \\' \
+		$(@D)/build/Makefile
 endef
 
 define GCC8_NATIVE_BUILD_CMDS
+	$(MAKE) -C $(@D)/build \
+		CFLAGS_FOR_BUILD="-O2" \
+		CXXFLAGS_FOR_BUILD="-O2" \
+		configure-gcc
+	$(TARGET_CC) -dumpspecs > $(@D)/build/gcc/specs
+	touch $(@D)/build/gcc/s-selftest-c
 	$(MAKE) -C $(@D)/build \
 		CFLAGS_FOR_BUILD="-O2" \
 		CXXFLAGS_FOR_BUILD="-O2" \

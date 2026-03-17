@@ -1,0 +1,31 @@
+From: Buildroot <buildroot@buildroot.org>
+Date: Mon, 16 Mar 2026 00:00:00 +0000
+Subject: [PATCH] intl/dcigettext: fix K&R getcwd declaration conflicting with macOS 26 SDK
+
+macOS 26 (darwin 25.x) SDK declares getcwd in <unistd.h> with a full
+prototype: char *getcwd(char *, size_t).  The K&R-style forward
+declaration "char *getcwd ();" in intl/dcigettext.c produces a
+"conflicting types" hard error when -Werror or strict-prototype mode
+is active under Clang 17+.
+
+Since macOS always provides POSIX getcwd, guard the K&R declaration
+with "#ifndef __APPLE__".
+
+Signed-off-by: Buildroot <buildroot@buildroot.org>
+---
+ intl/dcigettext.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/intl/dcigettext.c b/intl/dcigettext.c
+--- a/intl/dcigettext.c
++++ b/intl/dcigettext.c
+@@ -148,7 +148,9 @@
+ char *getwd ();
+ #  define getcwd(buf, max) getwd (buf)
+ # else
++#  ifndef __APPLE__
+ char *getcwd ();
++#  endif
+ # endif
+ # ifndef HAVE_STPCPY
+ static char *stpcpy PARAMS ((char *dest, const char *src));

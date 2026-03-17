@@ -15,3 +15,5 @@
 *.pyc
 *.bak
 /br.log
+package/gcc142/gcc-1.42/.*
+package/ncurses/6.6-20251231/
