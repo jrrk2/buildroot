@@ -142,6 +142,12 @@ rm -f "${TARGET_DIR}"/usr/bin/*-gcc-ar "${TARGET_DIR}"/usr/bin/*-gcc-nm "${TARGE
 # --- Remove libstdc++ (nothing on target links against it; gcc8 compiles C only) ---
 rm -f "${TARGET_DIR}"/usr/lib/libstdc++* "${TARGET_DIR}"/usr/lib/libstdc++*.py
 
+# --- Remove gitweb (leftover from git package, not useful on target) ---
+rm -rf "${TARGET_DIR}/usr/share/gitweb"
+
+# --- Remove m4 (GNU macro processor, 234KB — only needed by bison, not gcc) ---
+rm -f "${TARGET_DIR}/usr/bin/m4"
+
 # --- Slim down git for romfs (hardlinks → symlinks, remove unneeded helpers) ---
 if [ -d "${TARGET_DIR}/usr/libexec/git-core" ]; then
     # Convert hardlinks to symlinks (romfs doesn't support hardlinks)
