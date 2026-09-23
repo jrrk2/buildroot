@@ -1,0 +1,27 @@
+config BR2_PACKAGE_GCC_NATIVE
+	bool "gcc-native (compiler on the target)"
+	depends on BR2_TOOLCHAIN_BUILDROOT
+	# gcc is written in C++, so the cross toolchain must have a C++
+	# compiler to build it.  BR2_INSTALL_LIBSTDCPP is the selected
+	# symbol, not the settable one -- setting that in a defconfig is
+	# silently ignored, and configure then dies with CXX='no'.
+	select BR2_TOOLCHAIN_BUILDROOT_CXX
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_BINUTILS
+	select BR2_PACKAGE_BINUTILS_TARGET
+	select BR2_PACKAGE_GMP
+	select BR2_PACKAGE_MPFR
+	select BR2_PACKAGE_MPC
+	help
+	  A native gcc, so the board compiles its own code.
+
+	  Buildroot has no option for this: package/gcc builds the CROSS
+	  compiler, and gcc-final's target install copies only the runtime
+	  libraries.  This Canadian-crosses the same gcc buildroot already
+	  built the cross from -- built on this machine, running on the
+	  target, emitting code for the target -- which is the shape
+	  package/binutils already uses to put as and ld on the board.
+
+	  Only the compiler proper is built.  libgcc and libstdc++ are
+	  already on the target, from the identical gcc version, so
+	  rebuilding them would produce the same files by a longer route.
