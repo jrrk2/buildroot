@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TCC_VERSION = f7e187ef8084d49fd458a5ecba54868cce24f62c
+TCC_VERSION = 194bf323a2e6a26d7b152a4c3b224d1799a0bde8
 TCC_SITE = https://github.com/jrrk2/tinycc.git
 TCC_SITE_METHOD = git
 TCC_LICENSE = LGPL-2.1+
@@ -39,11 +39,15 @@ define TCC_BUILD_CMDS
 	# riscv32-libtcc1-usegcc=yes: build libtcc1.a with cross-gcc instead of tcc
 	# (the just-built tcc is a riscv32 binary that can't run on the build host)
 	$(MAKE) -C $(@D) riscv32-libtcc1-usegcc=yes
+	# tcc -run links runmain.o from its library directory; a cross build of
+	# lib/ leaves it out (it is native-only there), so build it here too
+	$(TARGET_CC) $(TARGET_CFLAGS) -fPIC -I$(@D) -I$(@D)/include -c $(@D)/lib/runmain.c -o $(@D)/runmain.o
 endef
 
 define TCC_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/tcc $(TARGET_DIR)/usr/bin/tcc
 	$(INSTALL) -D -m 0644 $(@D)/libtcc1.a $(TARGET_DIR)/usr/lib/tcc/libtcc1.a
+	$(INSTALL) -D -m 0644 $(@D)/runmain.o $(TARGET_DIR)/usr/lib/tcc/runmain.o
 	$(INSTALL) -d $(TARGET_DIR)/usr/lib/tcc/include
 	cp -a $(@D)/include/*.h $(TARGET_DIR)/usr/lib/tcc/include/
 	# Install musl C library development files needed by tcc
